@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    input, button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>URL Shortener</h1>
+  <div>
+    <input type="text" id="originalUrl" placeholder="Enter URL to shorten">
+  </div>
+  <div>
+    <input type="text" id="suffix" placeholder="Choose a suffix">
+    <button id="checkSuffix">Check Suffix</button>
+  </div>
+  <div id="suffixStatus"></div>
+  <div>
+    <button id="createShortUrl" disabled>Create Short URL</button>
+  </div>
+  <div id="result"></div>
+
+  <script>
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbxL_unZ8ExnC_Lm77M5NUwPlGorFsHs6JzvcSuhGbAGH0CkgvecWzyguZRnpCRLyAaWlA/exec"; // Replace with your Apps Script URL
+
+    document.getElementById("checkSuffix").addEventListener("click", async () => {
+      const suffix = document.getElementById("suffix").value.trim();
+      if (!suffix) {
+        document.getElementById("suffixStatus").textContent = "Please enter a suffix.";
+        return;
+      }
+      document.getElementById("suffixStatus").textContent = "Checking suffix...";
+      try {
+        const response = await fetch(scriptUrl, {
+          method: "POST",
+          body: JSON.stringify({ action: "checkSuffix", suffix }),
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await response.json();
+        if (data.available) {
+          document.getElementById("suffixStatus").textContent = "Suffix is available!";
+          document.getElementById("createShortUrl").disabled = false;
+        } else {
+          document.getElementById("suffixStatus").textContent = "Suffix is taken. Try another.";
+          document.getElementById("createShortUrl").disabled = true;
+        }
+      } catch (error) {
+        document.getElementById("suffixStatus").textContent = "Error checking suffix.";
+        console.error(error);
+      }
+    });
+
+    document.getElementById("createShortUrl").addEventListener("click", async () => {
+      const originalUrl = document.getElementById("originalUrl").value.trim();
+      const suffix = document.getElementById("suffix").value.trim();
+      if (!originalUrl || !suffix) {
+        document.getElementById("result").textContent = "Please provide both a URL and a suffix.";
+        return;
+      }
+      try {
+        const response = await fetch(scriptUrl, {
+          method: "POST",
+          body: JSON.stringify({ action: "createShortUrl", originalUrl, suffix }),
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await response.json();
+        if (data.success) {
+          const shortUrl = `https://yosefgli.github.io/url-shortener?${suffix}`;
+          document.getElementById("result").innerHTML = `
+            <p>Short URL created successfully:</p>
+            <input type="text" value="${shortUrl}" readonly>
+            <button onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
+          `;
+        } else {
+          document.getElementById("result").textContent = "Error creating short URL.";
+        }
+      } catch (error) {
+        document.getElementById("result").textContent = "Unexpected error occurred.";
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
